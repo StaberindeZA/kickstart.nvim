@@ -467,6 +467,8 @@ require('lazy').setup({
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
+
+      'yioneko/nvim-vtsls', -- A plugin for VTSLS, not really a great place to put it but oh well
     },
     config = function()
       -- Brief aside: **What is LSP?**
@@ -640,6 +642,45 @@ require('lazy').setup({
               },
               -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
               -- diagnostics = { disable = { 'missing-fields' } },
+            },
+          },
+        },
+
+        vtsls = {
+          settings = {
+            vtsls = {
+              experimental = {
+                completion = {
+                  enableServerSideFuzzyMatch = true,
+                  entriesLimit = 15,
+                },
+              },
+            },
+            typescript = {
+              inlayHints = {
+                parameterNames = { enabled = 'literals' },
+                parameterTypes = { enabled = true },
+                variableTypes = { enabled = true },
+                propertyDeclarationTypes = { enabled = true },
+                functionLikeReturnTypes = { enabled = true },
+                enumMemberValues = { enabled = true },
+              },
+              preferGoToSourceDefinition = true,
+              tsserver = {
+                maxTsServerMemory = 16384,
+              },
+              preferences = {
+                importModuleSpecifier = 'project-relative',
+                preferTypeOnlyAutoImports = true,
+                renameMatchingJsxTags = true,
+              },
+            },
+            javascript = {
+              preferGoToSourceDefinition = true,
+              preferences = {
+                importModuleSpecifier = 'project-relative',
+                renameMatchingJsxTags = true,
+              },
             },
           },
         },

@@ -467,8 +467,6 @@ require('lazy').setup({
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
-
-      'yioneko/nvim-vtsls', -- A plugin for VTSLS, not really a great place to put it but oh well
     },
     config = function()
       -- Brief aside: **What is LSP?**
@@ -668,11 +666,19 @@ require('lazy').setup({
               preferGoToSourceDefinition = true,
               tsserver = {
                 maxTsServerMemory = 16384,
+                -- Required for a memory limit >4GB to actually take effect: vtsls
+                -- otherwise forks tsserver in-process and caps the heap. With a
+                -- nodePath it spawns a standalone node with --max-old-space-size.
+                -- 'node' tells vtsls to detect node on PATH.
+                nodePath = 'node',
               },
               preferences = {
                 importModuleSpecifier = 'project-relative',
                 preferTypeOnlyAutoImports = true,
                 renameMatchingJsxTags = true,
+                -- Scanning every package.json for auto-import candidates is a
+                -- major memory/CPU sink in large monorepos like fxa.
+                includePackageJsonAutoImports = 'off',
               },
             },
             javascript = {
@@ -702,18 +708,21 @@ require('lazy').setup({
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
-      require('mason-lspconfig').setup {
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
-        },
-      }
+      -- Broadcast our (cmp-augmented) capabilities to every server.
+      vim.lsp.config('*', { capabilities = capabilities })
+
+      -- Register each server's config via the native vim.lsp.config API.
+      -- NOTE: mason-lspconfig v2 removed the `handlers` option and instead
+      -- auto-enables installed servers with `vim.lsp.enable()`, reading config
+      -- from `vim.lsp.config()`. The old `handlers`-based setup was a silent
+      -- no-op, which is why these `settings` (e.g. maxTsServerMemory) never
+      -- reached the server. Registering here BEFORE setup() ensures the merged
+      -- config is in place when automatic_enable enables each server.
+      for server_name, server in pairs(servers) do
+        vim.lsp.config(server_name, server)
+      end
+
+      require('mason-lspconfig').setup {}
     end,
   },
 
